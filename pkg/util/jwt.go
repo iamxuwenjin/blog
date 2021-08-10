@@ -11,7 +11,7 @@ var jwtSecret = []byte(setting.JwtSecret)
 type Claims struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
-	jwt.Claims
+	jwt.StandardClaims
 }
 
 func GenerateToken(username, password string) (string, error) {
@@ -31,4 +31,17 @@ func GenerateToken(username, password string) (string, error) {
 	token, err := tokenClaims.SignedString(jwtSecret)
 
 	return token, err
+}
+
+func ParseToken(token string) (*Claims, error) {
+	tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return jwtSecret, nil
+	})
+
+	if tokenClaims != nil {
+		if claims, ok := tokenClaims.Claims.(*Claims); ok && tokenClaims.Valid {
+			return claims, nil
+		}
+	}
+	return nil, err
 }
