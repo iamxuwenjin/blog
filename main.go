@@ -2,19 +2,27 @@ package main
 
 import (
 	"fmt"
+	"github.com/fvbock/endless"
+	"github.com/iamxuwenjin/blog/pkg/logging"
 	"github.com/iamxuwenjin/blog/pkg/setting"
 	"github.com/iamxuwenjin/blog/routers"
-	"net/http"
+	"syscall"
 )
 
 func main() {
-	router := routers.InitRouter()
-	s := &http.Server{
-		Addr:           fmt.Sprintf(":%d", setting.HTTPPort),
-		Handler:        router,
-		ReadTimeout:    setting.ReadTimeout,
-		WriteTimeout:   setting.WriteTimeout,
-		MaxHeaderBytes: 1 << 20,
+
+	endless.DefaultReadTimeOut = setting.ReadTimeout
+	endless.DefaultWriteTimeOut = setting.WriteTimeout
+	endless.DefaultMaxHeaderBytes = 1 << 20
+	endPoint := fmt.Sprintf(":%d", setting.HTTPPort)
+
+	server := endless.NewServer(endPoint, routers.InitRouter())
+
+	server.BeforeBegin = func(add string) {
+		logging.Info("Actual pid is %d", syscall.Getpid())
 	}
-	_ = s.ListenAndServe()
+	err := server.ListenAndServe()
+	if err != nil {
+		logging.Error("server err: %v", err)
+	}
 }
